@@ -2,4 +2,10 @@
 
 ## api.py
 Small script to download all research output with secondary sources from Pure into a spreadsheet. Any publications with no ID are omitted from the output.
-Usage: Run python3 api.py
+
+Usage: 
+
+1. Install Python 3 and pip.
+2. Install requirements in working folder: `pip install -r requirements.txt`.
+3. Run `python3 api.py`.
+4. Output file will be saved in working folder with a .xlsx extension.
