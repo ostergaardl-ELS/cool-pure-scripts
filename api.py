@@ -29,7 +29,7 @@ def fetch_data(url, api_key, version, fields = "uuid,title.value,info.additional
 
 	dfs = []
 
-	bar = click.progressbar(length=100, label="Extracting data:", show_eta=True)
+	bar = None
 
 	while current < total:
 		pars = {
@@ -42,6 +42,11 @@ def fetch_data(url, api_key, version, fields = "uuid,title.value,info.additional
 
 		total = dataset['count'] 
 		current = current + size
+
+		if bar is None:
+			bar = click.progressbar(length=total, label="Extracting data:", show_eta=True, color='blue')
+
+		bar.update(size)
 
 		df_title = pd.json_normalize(data=dataset['items'])
 
@@ -69,11 +74,8 @@ def fetch_data(url, api_key, version, fields = "uuid,title.value,info.additional
 				values=['value'], 
 				columns=['idSource'], 
 				aggfunc=';'.join)
-
+		#df.to_excel("{}{}.xlsx".format(url,(current-size)))
 		dfs.append(df)
-
-		progress = np.round(current/total,2)
-		bar.update(progress)
 
 	return pd.concat(dfs)
 
@@ -86,6 +88,7 @@ def main(url, apikey, outputfile, apiversion):
 
 	click.echo("Connecting to {}.".format(url))
 	data = fetch_data(url, apikey, apiversion)
+	click.echo("Saved output as {}".format(outputfile))
 	data.to_excel(outputfile)
 
 main()
