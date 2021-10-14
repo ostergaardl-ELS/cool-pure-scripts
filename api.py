@@ -114,8 +114,6 @@ def fetch_data(url, api_key, version, resume = False, fields = "uuid,title.value
 
 	click.echo("Saving output as {}...".format(output_filename))
 	result.to_excel(output_filename)
-	
-
 
 @click.command()
 @click.argument("url")
@@ -125,7 +123,6 @@ def fetch_data(url, api_key, version, resume = False, fields = "uuid,title.value
 def main(url, apikey, apiversion, resume):
 
 	click.echo("Connecting to {}.".format(url))
-
 	data = fetch_data(url, apikey, apiversion, resume)
 
 
