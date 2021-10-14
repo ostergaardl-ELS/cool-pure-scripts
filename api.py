@@ -2,6 +2,11 @@ import pandas as pd
 import numpy as np
 import requests
 
+import os
+import glob
+
+from urllib.parse import urlparse, urljoin
+
 import click
 
 from pandas.io.json import json_normalize
@@ -11,9 +16,9 @@ def get_request(pure_url, api_key, version, resource, params = {}):
 	headers = {
 		"accept": "application/json",
 		"api-key": api_key
-	}	
+	}
 
-	url = "{0}/ws/api/{1}/{2}".format(pure_url,version,resource)
+	url = urljoin(pure_url, "/ws/api/{}/{}".format(version,resource)) 
 
 	try:
 		return requests.get(url, params = params, headers = headers)
@@ -21,13 +26,20 @@ def get_request(pure_url, api_key, version, resource, params = {}):
 		print("Request error! {0} ({1})".format(url,params))
 		return None	
 
-def fetch_data(url, api_key, version, fields = "uuid,title.value,info.additionalExternalIds.*"):
+def fetch_data(url, api_key, version, resume = False, fields = "uuid,title.value,info.additionalExternalIds.*"):
 
 	current = 0
 	size = 50
 	total = np.inf
 
-	dfs = []
+	site = urlparse(url).netloc.replace(".","_")
+
+	if resume:
+		getnum = lambda x: int(x.split("/")[-1].split(".")[0])
+		csv_files = glob.glob(os.path.join(site, "*.csv"))
+		if csv_files:
+			pages = sorted(list(map(getnum, csv_files)))
+			current = pages[-1]
 
 	bar = None
 
@@ -41,11 +53,19 @@ def fetch_data(url, api_key, version, fields = "uuid,title.value,info.additional
 		dataset = get_request(url, api_key, version, "research-outputs", pars).json()
 
 		total = dataset['count'] 
-		current = current + size
-
+		
 		if bar is None:
-			bar = click.progressbar(length=total, label="Extracting data:", show_eta=True, color='blue')
+			bar = click.progressbar(length=total, label="Downloading data:", show_eta=True)
 
+			click.echo("Found {} records.".format(total))
+
+			if current > 0:
+				bar.update(current)
+
+			if current >= total:
+				break
+
+		current = current + size
 		bar.update(size)
 
 		df_title = pd.json_normalize(data=dataset['items'])
@@ -69,26 +89,44 @@ def fetch_data(url, api_key, version, fields = "uuid,title.value,info.additional
 		if df_ids.empty:
 			df = df_title.copy()
 		else:
-			df = pd.pivot_table(df_title.join(df_ids), 
-				index=['uuid','title.value'], 
+			df = pd.pivot_table(df_ids, 
+				index=['uuid'], 
 				values=['value'], 
 				columns=['idSource'], 
 				aggfunc=';'.join)
-		#df.to_excel("{}{}.xlsx".format(url,(current-size)))
-		dfs.append(df)
 
-	return pd.concat(dfs)
+			df.columns = df.columns.droplevel(0)
+			df = df.join(df_title)
+
+		if not os.path.exists(site):
+			os.mkdir(site)
+
+		df.to_csv(os.path.join(site,"{}.csv".format(current)))
+		
+	csv_files = glob.glob(os.path.join(site, "*.csv"))
+
+	result = pd.DataFrame()
+	with click.progressbar(csv_files, label="Combining dataset...", show_eta=True) as bar:
+		for csv_file in bar:
+			result = pd.concat([result, pd.read_csv(csv_file, index_col="uuid")])
+
+	output_filename = os.path.join(site, "{}.xlsx".format(site))
+
+	click.echo("Saving output as {}...".format(output_filename))
+	result.to_excel(output_filename)
+	
+
 
 @click.command()
 @click.argument("url")
 @click.argument("apikey")
-@click.option("--outputfile", help = "The name of the output Excel file (must include .xlsx extension).", default = "data.xlsx")
 @click.option("--apiversion", help = "The API version to use. Default: '521'", default = "521")
-def main(url, apikey, outputfile, apiversion):
+@click.option("--resume", help = "Resume harvesting from last time.", default = False, is_flag=True)
+def main(url, apikey, apiversion, resume):
 
 	click.echo("Connecting to {}.".format(url))
-	data = fetch_data(url, apikey, apiversion)
-	click.echo("Saved output as {}".format(outputfile))
-	data.to_excel(outputfile)
+
+	data = fetch_data(url, apikey, apiversion, resume)
+
 
 main()
