@@ -2,6 +2,9 @@ import pandas as pd
 import numpy as np
 import requests
 
+from requests.packages.urllib3.exceptions import InsecureRequestWarning
+requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
+
 import os
 import glob
 
@@ -21,7 +24,7 @@ def get_request(pure_url, api_key, version, resource, params = {}):
 	url = urljoin(pure_url, "/ws/api/{}/{}".format(version,resource)) 
 
 	try:
-		return requests.get(url, params = params, headers = headers)
+		return requests.get(url, params = params, headers = headers, verify=False)
 	except requests.ConnectionError:
 		print("Request error! {0} ({1})".format(url,params))
 		return None	
