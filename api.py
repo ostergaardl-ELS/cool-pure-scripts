@@ -17,7 +17,7 @@ import json
 
 def get_request(pure_url, api_key, version, resource, params = {}):
 	headers = {
-		"accept": "application/json",
+		"Accept": "application/json",
 		"api-key": api_key
 	}
 
@@ -29,7 +29,7 @@ def get_request(pure_url, api_key, version, resource, params = {}):
 		print("Request error! {0} ({1})".format(url,params))
 		return None	
 
-def fetch_data(url, api_key, version, resume = False, fields = "uuid,title.value,info.additionalExternalIds.*"):
+def fetch_data(url, api_key, version, family = "research-outputs", fields = "uuid,title.value,info.additionalExternalIds.*", resume = False):
 
 	current = 0
 	size = 50
@@ -53,7 +53,7 @@ def fetch_data(url, api_key, version, resume = False, fields = "uuid,title.value
 			"offset": current
 		}
 
-		dataset = get_request(url, api_key, version, "research-outputs", pars).json()
+		dataset = get_request(url, api_key, version, family, pars).json()
 
 		total = dataset['count'] 
 		
@@ -121,12 +121,15 @@ def fetch_data(url, api_key, version, resume = False, fields = "uuid,title.value
 @click.command()
 @click.argument("url")
 @click.argument("apikey")
-@click.option("--apiversion", help = "The API version to use. Default: '521'", default = "521")
+@click.option("--apiversion", help = "The API version to use. Default: '522'", default = "522")
+@click.option("--family", help = "The family to download", default = "research-outputs")
+@click.option("--fields", help = "The fields to retrieve.", default = "uuid,title.value,info.additionalExternalIds.*")
 @click.option("--resume", help = "Resume harvesting from last time.", default = False, is_flag=True)
-def main(url, apikey, apiversion, resume):
+def main(url, apikey, apiversion, family, fields, resume):
 
 	click.echo("Connecting to {}.".format(url))
-	data = fetch_data(url, apikey, apiversion, resume)
+
+	data = fetch_data(url, apikey, apiversion, family, fields, resume)
 
 
 main()
