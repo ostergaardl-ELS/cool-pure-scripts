@@ -11,7 +11,8 @@ Usage:
 4. Run `python3 api.py --help` for instructions.
 5. Output file will be saved in working folder with a .xlsx extension supplied in the `--outputfile` option.
 
-Examples:
+### Examples
+
 `python3 api.py https://test.pure.elsevier.com not-real-api-key --resume --apiversion 521`.
 
 This example downloads the data, but also checks if data was previously downloaded and will resume from that point on. This helps avoid having to reharvest everything if an incremental upate is needed. The `apiversion` parameter can be used to override the Pure API version being called.
