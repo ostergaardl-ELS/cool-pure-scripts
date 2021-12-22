@@ -14,6 +14,9 @@ import click
 
 from pandas.io.json import json_normalize
 import json
+import ast
+
+from flatten_json import flatten
 
 def get_request(pure_url, api_key, version, resource, params = {}):
 	headers = {
@@ -29,13 +32,20 @@ def get_request(pure_url, api_key, version, resource, params = {}):
 		print("Request error! {0} ({1})".format(url,params))
 		return None	
 
-def fetch_data(url, api_key, version, family = "research-outputs", fields = "uuid,title.value,info.additionalExternalIds.*", resume = False):
+
+def get_site(url):
+	return urlparse(url).netloc.replace(".","_")
+
+def get_excel_path(site):
+	return os.path.join(site, "{}.xlsx".format(site))
+
+def fetch_data(url, api_key, version, family = "research-outputs", fields = "uuid,title.value,info.additionalExternalIds.*", resume=False, flatten_data = True):
 
 	current = 0
 	size = 50
 	total = np.inf
 
-	site = urlparse(url).netloc.replace(".","_")
+	site = get_site(url)
 
 	if resume:
 		getnum = lambda x: int(x.split("/")[-1].split(".")[0])
@@ -71,35 +81,37 @@ def fetch_data(url, api_key, version, family = "research-outputs", fields = "uui
 		current = current + size
 		bar.update(size)
 
-		df_title = pd.json_normalize(data=dataset['items'])
-
-		id_column = "info.additionalExternalIds"
-
-		if id_column not in df_title.columns:
-			df_title[id_column] = None
-
-		isnull = df_title[id_column].isnull()
-		df_ids = pd.DataFrame()
-		for idx, row in df_title.loc[~isnull, :].iterrows():			
-			df_id = pd.json_normalize(row[id_column])
-			df_id['uuid'] = row['uuid']
-			df_id = df_id.set_index('uuid')
-			df_ids = pd.concat([df_ids, df_id])
-
-		df_title = df_title.drop(id_column, axis=1).set_index('uuid')
-
 		df = pd.DataFrame()
-		if df_ids.empty:
-			df = df_title.copy()
+		if flatten_data:
+			dic_flattened = [pd.DataFrame.from_dict(flatten(d), orient='index').transpose() for d in dataset["items"]]
+			df = pd.concat(dic_flattened).set_index("uuid")
 		else:
-			df = pd.pivot_table(df_ids, 
-				index=['uuid'], 
-				values=['value'], 
-				columns=['idSource'], 
-				aggfunc=';'.join)
+			df_title = pd.json_normalize(data=dataset['items'])
+			id_column = "info.additionalExternalIds"
 
-			df.columns = df.columns.droplevel(0)
-			df = df.join(df_title)
+			if id_column not in df_title.columns:
+				df_title[id_column] = None
+
+			isnull = df_title[id_column].isnull()
+			df_ids = pd.DataFrame()
+			for idx, row in df_title.loc[~isnull, :].iterrows():
+				df_id = pd.json_normalize(row[id_column])
+				df_id['uuid'] = row['uuid']
+				df_id = df_id.set_index('uuid')
+				df_ids = pd.concat([df_ids, df_id])
+			df_title = df_title.drop(id_column, axis=1).set_index('uuid')
+
+			if df_ids.empty:
+				df = df_title.copy()
+			else:
+				df = pd.pivot_table(df_ids, 
+					index=['uuid'], 
+					values=['value'], 
+					columns=['idSource'], 
+					aggfunc=';'.join)
+
+				df.columns = df.columns.droplevel(0)
+				df = df.join(df_title)
 
 		if not os.path.exists(site):
 			os.mkdir(site)
@@ -113,10 +125,25 @@ def fetch_data(url, api_key, version, family = "research-outputs", fields = "uui
 		for csv_file in bar:
 			result = pd.concat([result, pd.read_csv(csv_file, index_col="uuid")])
 
-	output_filename = os.path.join(site, "{}.xlsx".format(site))
+	output_filename = get_excel_path(site)
 
 	click.echo("Saving output as {}...".format(output_filename))
 	result.to_excel(output_filename)
+
+def get_split_df(df, id_column, target_column):
+
+	# if the column doesn't exist, set it to null
+	if target_column not in df.columns:
+		df[target_column] = None
+
+	isnull = df[target_column].isnull()
+	result = pd.DataFrame()
+	for idx, row in df.loc[~isnull,:].iterrows():
+		new_df = pd.json_normalize(ast.literal_eval(row[target_column]))
+		new_df[id_column] = row[id_column]
+		new_df.set_index(id_column, inplace=True)
+		result = pd.concat([result,new_df])
+	return result
 
 @click.command()
 @click.argument("url")
@@ -125,11 +152,11 @@ def fetch_data(url, api_key, version, family = "research-outputs", fields = "uui
 @click.option("--family", help = "The family to download", default = "research-outputs")
 @click.option("--fields", help = "The fields to retrieve.", default = "uuid,title.value,info.additionalExternalIds.*")
 @click.option("--resume", help = "Resume harvesting from last time.", default = False, is_flag=True)
-def main(url, apikey, apiversion, family, fields, resume):
+@click.option("--flatten_data", help="Flattens nested data into separate columns.", default=True)
+def main(url, apikey, apiversion, family, fields, resume, flatten_data):
 
 	click.echo("Connecting to {}.".format(url))
 
-	data = fetch_data(url, apikey, apiversion, family, fields, resume)
-
+	data = fetch_data(url, apikey, apiversion, family, fields, resume, flatten_data)
 
 main()
