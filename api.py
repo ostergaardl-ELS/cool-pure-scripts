@@ -48,6 +48,7 @@ def fetch_data(url, api_key, version, family = "research-outputs", fields = "uui
 	site = get_site(url)
 
 	if resume:
+		click.echo("Resuming...")
 		getnum = lambda x: int(x.split("/")[-1].split(".")[0])
 		csv_files = glob.glob(os.path.join(site, "*.csv"))
 		if csv_files:
@@ -83,8 +84,13 @@ def fetch_data(url, api_key, version, family = "research-outputs", fields = "uui
 
 		df = pd.DataFrame()
 		if flatten_data:
-			dic_flattened = [pd.DataFrame.from_dict(flatten(d), orient='index').transpose() for d in dataset["items"]]
-			df = pd.concat(dic_flattened).set_index("uuid")
+
+			df = pd.concat([pd.DataFrame.from_dict(flatten(d), orient='index').transpose() for d in dataset["items"]]).set_index("uuid")
+
+			df_unflattened = pd.json_normalize(data=dataset["items"], sep='_')
+			df_unflattened.set_index("uuid", inplace=True)
+			extra_columns = list(set(df_unflattened.columns).difference(set(df.columns)))
+			df = df.join(df_unflattened.loc[:, df_unflattened.columns.isin(extra_columns)])
 		else:
 			df_title = pd.json_normalize(data=dataset['items'])
 			id_column = "info.additionalExternalIds"
