@@ -52,7 +52,7 @@ Download all persons and limit the fields to include with the `--fields` option.
 
 Download projects, including title, source, creation date, period and status/
 
-`python3 api.py https://test.pure.elsevier.com not-real-api-key --fields 'uuid,externalId,title.text.value,externalIdSource,info.createdDate,period.*,status.key' --family projects
+`python3 api.py https://test.pure.elsevier.com not-real-api-key --fields 'uuid,externalId,title.text.value,externalIdSource,info.createdDate,period.*,status.key' --family projects`
 
 
 
