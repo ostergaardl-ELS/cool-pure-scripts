@@ -26,6 +26,14 @@ Hint: Use `--help` to show these options.
 | `--flatten_data` | Flattens nested data into separate columns. | `True` |
 | `--help` | Display help. | |
 
+#### Dependencies
+```
+click==7.1.2
+numpy==1.21.2
+flatten_json==0.1.13
+requests==2.26.0
+pandas==1.3.2
+```
 ### Examples
 
 This section describes examples of usage.
@@ -50,7 +58,7 @@ Download all persons and limit the fields to include with the `--fields` option.
 
 #### Projects
 
-Download projects, including title, source, creation date, period and status/
+Download projects, including title, source, creation date, period and status.
 
 `python3 api.py https://test.pure.elsevier.com not-real-api-key --fields 'uuid,externalId,title.text.value,externalIdSource,info.createdDate,period.*,status.key' --family projects`
 
