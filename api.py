@@ -84,40 +84,16 @@ def fetch_data(url, api_key, version, family = "research-outputs", fields = "uui
 
 		df = pd.DataFrame()
 		if flatten_data:
-
 			df = pd.concat([pd.DataFrame.from_dict(flatten(d), orient='index').transpose() for d in dataset["items"]]).set_index("uuid")
 
 			df_unflattened = pd.json_normalize(data=dataset["items"], sep='_')
 			df_unflattened.set_index("uuid", inplace=True)
 			extra_columns = list(set(df_unflattened.columns).difference(set(df.columns)))
+
 			df = df.join(df_unflattened.loc[:, df_unflattened.columns.isin(extra_columns)])
 		else:
-			df_title = pd.json_normalize(data=dataset['items'])
-			id_column = "info.additionalExternalIds"
-
-			if id_column not in df_title.columns:
-				df_title[id_column] = None
-
-			isnull = df_title[id_column].isnull()
-			df_ids = pd.DataFrame()
-			for idx, row in df_title.loc[~isnull, :].iterrows():
-				df_id = pd.json_normalize(row[id_column])
-				df_id['uuid'] = row['uuid']
-				df_id = df_id.set_index('uuid')
-				df_ids = pd.concat([df_ids, df_id])
-			df_title = df_title.drop(id_column, axis=1).set_index('uuid')
-
-			if df_ids.empty:
-				df = df_title.copy()
-			else:
-				df = pd.pivot_table(df_ids, 
-					index=['uuid'], 
-					values=['value'], 
-					columns=['idSource'], 
-					aggfunc=';'.join)
-
-				df.columns = df.columns.droplevel(0)
-				df = df.join(df_title)
+			df = pd.json_normalize(data=dataset['items'])
+			df.set_index("uuid", inplace=True)
 
 		if not os.path.exists(site):
 			os.mkdir(site)
@@ -136,6 +112,7 @@ def fetch_data(url, api_key, version, family = "research-outputs", fields = "uui
 	click.echo("Saving output as {}...".format(output_filename))
 	result.to_excel(output_filename)
 
+# Utility function to flatten JSON and combine
 def get_split_df(df, id_column, target_column):
 
 	# if the column doesn't exist, set it to null
@@ -158,7 +135,7 @@ def get_split_df(df, id_column, target_column):
 @click.option("--family", help = "The family to download.", default = "research-outputs")
 @click.option("--fields", help = "The fields to retrieve.", default = "uuid,title.value,info.additionalExternalIds.*")
 @click.option("--resume", help = "Resume harvesting from last time.", default = False, is_flag=True)
-@click.option("--flatten_data", help="Flattens nested data into separate columns.", default=True, is_flag=True)
+@click.option("--flatten_data", help="Flattens nested data into separate columns.", default=True)
 def main(url, apikey, apiversion, family, fields, resume, flatten_data):
 
 	click.echo("Connecting to {}.".format(url))
