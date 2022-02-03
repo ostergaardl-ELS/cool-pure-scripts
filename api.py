@@ -63,7 +63,7 @@ def fetch_data(url, api_key, version, family = "research-outputs", fields = "uui
 			"size": size,
 			"offset": current
 		}
-		print(family)
+
 		dataset = get_request(url, api_key, version, family, pars).json()
 
 		total = dataset['count'] 
