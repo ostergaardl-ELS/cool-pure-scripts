@@ -39,7 +39,7 @@ def get_site(url):
 def get_excel_path(site):
 	return os.path.join(site, "{}.xlsx".format(site))
 
-def fetch_data(url, api_key, version, family = "research-outputs", fields = "uuid,title.value,info.additionalExternalIds.*", resume=False, flatten_data = True):
+def fetch_data(url, api_key, version, family = "research-outputs", fields = "uuid,title.value,info.*", resume=False, flatten_data = True):
 
 	current = 0
 	size = 50
@@ -63,7 +63,7 @@ def fetch_data(url, api_key, version, family = "research-outputs", fields = "uui
 			"size": size,
 			"offset": current
 		}
-
+		print(family)
 		dataset = get_request(url, api_key, version, family, pars).json()
 
 		total = dataset['count'] 
@@ -154,11 +154,11 @@ def get_split_df(df, id_column, target_column):
 @click.command()
 @click.argument("url")
 @click.argument("apikey")
-@click.option("--apiversion", help = "The API version to use. Default: '522'", default = "522")
-@click.option("--family", help = "The family to download", default = "research-outputs")
+@click.option("--apiversion", help = "The API version to use. Default: '522'.", default = "522")
+@click.option("--family", help = "The family to download.", default = "research-outputs")
 @click.option("--fields", help = "The fields to retrieve.", default = "uuid,title.value,info.additionalExternalIds.*")
 @click.option("--resume", help = "Resume harvesting from last time.", default = False, is_flag=True)
-@click.option("--flatten_data", help="Flattens nested data into separate columns.", default=True)
+@click.option("--flatten_data", help="Flattens nested data into separate columns.", default=True, is_flag=True)
 def main(url, apikey, apiversion, family, fields, resume, flatten_data):
 
 	click.echo("Connecting to {}.".format(url))
