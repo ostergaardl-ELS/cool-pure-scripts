@@ -48,6 +48,8 @@ The following example download research output and will resume from the last bat
 
 #### Research Output
 
+Downloads all research output, including UUID, title, created date and source.
+
 `python3 api.py https://test.pure.elsevier.com not-real-api-key --fields uuid,title.value,info.createdDate,externalIdSource`
 
 #### Persons
