@@ -65,4 +65,12 @@ Download projects, including title, source, creation date, period and status.
 `python3 api.py https://test.pure.elsevier.com not-real-api-key --fields 'uuid,externalId,title.text.value,externalIdSource,info.createdDate,period.*,status.key' --family projects`
 
 
-
+## Future Work
+- Option to remove unflattened columns from output.
+- Smarter resumption - label output by family.
+- Select most recent API version by default.
+- Add list of families to `--help`.
+- Override page size from `50`.
+- Support search query `--query`.
+- Add `--clean` argument to clear output folder.
+- Support new Pure API (write).
