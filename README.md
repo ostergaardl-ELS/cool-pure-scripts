@@ -22,7 +22,7 @@ Hint: Use `--help` to show these options.
 | `--apiversion` | The API version to use. | `522` |
 | `--family` | The family to download. | `research-outputs` |
 | `--fields` | The fields to retrieve. | `uuid,title.value,info.*` |
-| `--resume` | Resume harvesting from last time. | `True` |
+| `--resume` | Resume harvesting from last time. | `False` |
 | `--flatten_data` | Flattens nested data into separate columns. | `True` |
 | `--help` | Display help. | |
 
