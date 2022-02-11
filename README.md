@@ -33,6 +33,7 @@ numpy==1.21.2
 flatten_json==0.1.13
 requests==2.26.0
 pandas==1.3.2
+openpyxl==3.0.9
 ```
 ### Examples
 
